@@ -1,0 +1,38 @@
+name: Sync Fork with Upstream
+
+on:
+  schedule:
+    # 每天凌晨2点自动同步
+    - cron: '0 2 * * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Sync upstream
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # 添加上游仓库
+          git remote add upstream https://github.com/原作者/原仓库名.git
+          
+          # 获取上游所有分支
+          git fetch upstream
+          
+          # 获取所有分支名称
+          branches=$(git branch -r | grep 'upstream/' | grep -v 'HEAD' | sed 's/upstream\///')
+          
+          # 同步每个分支
+          for branch in $branches; do
+            echo "Syncing branch: $branch"
+            git checkout -B $branch upstream/$branch
+            git push origin $branch --force
+          done
